@@ -31,7 +31,7 @@ set -x
 
 travisEnv=
 for variant in apache fpm fpm-alpine; do
-	dir="php-$variant"
+	dir="$variant"
 	mkdir -p "$dir"
 
 	template="Dockerfile-${base[$variant]}.template"
@@ -43,7 +43,7 @@ for variant in apache fpm fpm-alpine; do
 		s/%%VARIANT_EXTRAS%%/'"${extras[$variant]}"'/;
 		s/%%VERSION%%/'"$latest"'/;
 		s/%%CMD%%/'"${cmd[$variant]}"'/;
-	' "php-$variant/Dockerfile"
+	' "$variant/Dockerfile"
 
 	travisEnv+='\n  - VERSION='"$latest"' VARIANT='"$variant"
 done
