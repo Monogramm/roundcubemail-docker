@@ -27,6 +27,7 @@ after_script:
 notifications:
   email: false
 
-env: # Environments
-    - VERSION=1.3.8 VARIANT=fpm
-    - VERSION=1.3.8 VARIANT=apache
+env:
+  - VERSION=1.3.8 VARIANT=apache
+  - VERSION=1.3.8 VARIANT=fpm
+  - VERSION=1.3.8 VARIANT=fpm-alpine

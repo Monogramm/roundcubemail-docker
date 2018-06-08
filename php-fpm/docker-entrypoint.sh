@@ -52,7 +52,7 @@ if [[ "$1" == apache2* ]] || [ "$1" == php-fpm ]; then
   : "${ROUNDCUBEMAIL_SMTP_SERVER:=localhost}"
   : "${ROUNDCUBEMAIL_SMTP_PORT:=587}"
   : "${ROUNDCUBEMAIL_PLUGINS:=archive,zipdownload}"
-  : "${ROUNDCUBEMAIL_TEMP_DIR:=/var/www/html/temp}"
+  : "${ROUNDCUBEMAIL_TEMP_DIR:=/tmp/roundcube-temp}"
 
   if [ ! -e config/config.inc.php ]; then
     ROUNDCUBEMAIL_PLUGINS_PHP=`echo "${ROUNDCUBEMAIL_PLUGINS}" | sed -E "s/[, ]+/', '/g"`
@@ -67,8 +67,6 @@ if [[ "$1" == apache2* ]] || [ "$1" == php-fpm ]; then
     \$config['default_port'] = '${ROUNDCUBEMAIL_DEFAULT_PORT}';
     \$config['smtp_server'] = '${ROUNDCUBEMAIL_SMTP_SERVER}';
     \$config['smtp_port'] = '${ROUNDCUBEMAIL_SMTP_PORT}';
-    \$config['smtp_user'] = '%u';
-    \$config['smtp_pass'] = '%p';
     \$config['temp_dir'] = '${ROUNDCUBEMAIL_TEMP_DIR}';
     \$config['plugins'] = ['${ROUNDCUBEMAIL_PLUGINS_PHP}'];
     \$config['zipdownload_selection'] = true;

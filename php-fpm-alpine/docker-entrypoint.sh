@@ -11,11 +11,10 @@ if [[ "$1" == apache2* ]] || [ "$1" == php-fpm ]; then
       ( set -x; ls -A; sleep 10 )
     fi
     tar cf - --one-file-system -C /usr/src/roundcubemail . | tar xf -
-    sed -i 's/mod_php5.c/mod_php7.c/' .htaccess
     echo >&2 "Complete! ROUNDCUBEMAIL has been successfully copied to $PWD"
   fi
 
-  if [ ! -z "${!POSTGRES_ENV_POSTGRES_*}" ] || [ $ROUNDCUBEMAIL_DB_TYPE == "pgsql" ]; then
+  if [ ! -z "${!POSTGRES_ENV_POSTGRES_*}" ] || [ "$ROUNDCUBEMAIL_DB_TYPE" == "pgsql" ]; then
     : "${ROUNDCUBEMAIL_DB_TYPE:=pgsql}"
     : "${ROUNDCUBEMAIL_DB_HOST:=postgres}"
     : "${ROUNDCUBEMAIL_DB_USER:=${POSTGRES_ENV_POSTGRES_USER}}"
@@ -24,7 +23,7 @@ if [[ "$1" == apache2* ]] || [ "$1" == php-fpm ]; then
     : "${ROUNDCUBEMAIL_DSNW:=${ROUNDCUBEMAIL_DB_TYPE}://${ROUNDCUBEMAIL_DB_USER}:${ROUNDCUBEMAIL_DB_PASSWORD}@${ROUNDCUBEMAIL_DB_HOST}/${ROUNDCUBEMAIL_DB_NAME}}"
 
     /wait-for-it.sh ${ROUNDCUBEMAIL_DB_HOST}:5432 -t 30
-  elif [ ! -z "${!MYSQL_ENV_MYSQL_*}" ] || [ $ROUNDCUBEMAIL_DB_TYPE == "mysql" ]; then
+  elif [ ! -z "${!MYSQL_ENV_MYSQL_*}" ] || [ "$ROUNDCUBEMAIL_DB_TYPE" == "mysql" ]; then
     : "${ROUNDCUBEMAIL_DB_TYPE:=mysql}"
     : "${ROUNDCUBEMAIL_DB_HOST:=mysql}"
     : "${ROUNDCUBEMAIL_DB_USER:=${MYSQL_ENV_MYSQL_USER:-root}}"
@@ -86,7 +85,8 @@ if [[ "$1" == apache2* ]] || [ "$1" == php-fpm ]; then
   fi
 
   if [ ! -z "${ROUNDCUBEMAIL_UPLOAD_MAX_FILESIZE}" ]; then
-    sed -i -E "s/(upload_max_filesize|post_max_size) +[0-9BKMG]+/\1 ${ROUNDCUBEMAIL_UPLOAD_MAX_FILESIZE}/g" $PWD/.htaccess
+    echo "upload_max_filesize=${ROUNDCUBEMAIL_UPLOAD_MAX_FILESIZE}" >> /usr/local/etc/php/conf.d/roundcube-override.ini
+    echo "post_max_size=${ROUNDCUBEMAIL_UPLOAD_MAX_FILESIZE}" >> /usr/local/etc/php/conf.d/roundcube-override.ini
   fi
 fi
 

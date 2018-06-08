@@ -1,4 +1,4 @@
-FROM php:7.1-apache
+FROM php:7.1-%%VARIANT%%
 LABEL maintainer="Thomas Bruederli <thomas@roundcube.net>"
 
 RUN set -ex; \
@@ -44,16 +44,14 @@ RUN set -ex; \
 	\
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
 	rm -rf /var/lib/apt/lists/*
-
-# enable mod_rewrite
-RUN a2enmod rewrite
+%%VARIANT_EXTRAS%%
 
 # expose these volumes
 VOLUME /var/roundcube/config
 VOLUME /tmp/roundcube-temp
 
 # Define Roundcubemail version
-ENV ROUNDCUBEMAIL_VERSION 1.3.8
+ENV ROUNDCUBEMAIL_VERSION %%VERSION%%
 
 # Download package and extract to web volume
 RUN set -ex; \
@@ -82,4 +80,4 @@ COPY php.ini /usr/local/etc/php/conf.d/roundcube-defaults.ini
 COPY docker-entrypoint.sh /
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["apache2-foreground"]
+CMD ["%%CMD%%"]

@@ -45,12 +45,10 @@ RUN set -ex; \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
 	rm -rf /var/lib/apt/lists/*
 
-# use custom PHP settings
-COPY php.ini /usr/local/etc/php/conf.d/roundcube-defaults.ini
 
 # expose these volumes
 VOLUME /var/roundcube/config
-VOLUME /var/www/html
+VOLUME /tmp/roundcube-temp
 
 # Define Roundcubemail version
 ENV ROUNDCUBEMAIL_VERSION 1.3.8
@@ -63,10 +61,10 @@ RUN set -ex; \
 	curl -o roundcubemail.tar.gz -SL https://github.com/roundcube/roundcubemail/releases/download/${ROUNDCUBEMAIL_VERSION}/roundcubemail-${ROUNDCUBEMAIL_VERSION}-complete.tar.gz; \
 	curl -o roundcubemail.tar.gz.asc -SL https://github.com/roundcube/roundcubemail/releases/download/${ROUNDCUBEMAIL_VERSION}/roundcubemail-${ROUNDCUBEMAIL_VERSION}-complete.tar.gz.asc; \
 	export GNUPGHOME="$(mktemp -d)"; \
-	# ha.pool.sks-keyservers.net seems to be unreliable, use pgp.mit.edu as fallback
-	gpg --no-tty --keyserver ha.pool.sks-keyservers.net --recv-keys F3E4C04BB3DB5D4215C45F7F5AB2BAA141C4F7D5 || gpg --no-tty --keyserver pgp.mit.edu --recv-keys F3E4C04BB3DB5D4215C45F7F5AB2BAA141C4F7D5; \
+# ha.pool.sks-keyservers.net seems to be unreliable, use pgp.mit.edu as fallback
+	gpg --keyserver ha.pool.sks-keyservers.net --recv-keys F3E4C04BB3DB5D4215C45F7F5AB2BAA141C4F7D5 || gpg --keyserver pgp.mit.edu --recv-keys F3E4C04BB3DB5D4215C45F7F5AB2BAA141C4F7D5; \
 	gpg --batch --verify roundcubemail.tar.gz.asc roundcubemail.tar.gz; \
-	tar -xzf roundcubemail.tar.gz -C /usr/src/; \
+	tar -xf roundcubemail.tar.gz -C /usr/src/; \
 	gpgconf --kill all; \
 	rm -r "$GNUPGHOME" roundcubemail.tar.gz.asc roundcubemail.tar.gz; \
 	# upstream tarballs include ./roundcubemail-${ROUNDCUBEMAIL_VERSION}/ so this gives us /usr/src/roundcubemail-${ROUNDCUBEMAIL_VERSION}
@@ -75,6 +73,9 @@ RUN set -ex; \
 
 # include the wait-for-it.sh script
 RUN curl https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh > /wait-for-it.sh && chmod +x /wait-for-it.sh
+
+# use custom PHP settings
+COPY php.ini /usr/local/etc/php/conf.d/roundcube-defaults.ini
 
 COPY docker-entrypoint.sh /
 
