@@ -22,7 +22,7 @@ declare -A base=(
 latest="$(
 	git ls-remote --tags https://github.com/roundcube/roundcubemail.git \
 		| cut -d/ -f3 \
-		| grep -P -- '^[\d\.]+$' \
+		| grep -E -- '^([0-9]{1,}\.)+[0-9]{1,}$' \
 		| sort -V \
 		| tail -1
 )"
@@ -38,7 +38,7 @@ for variant in apache fpm fpm-alpine; do
 	cp $template "$dir/Dockerfile"
 	cp docker-entrypoint.sh "$dir/docker-entrypoint.sh"
 	cp php.ini "$dir/php.ini"
-	sed -ri -e '
+	sed -E -i'' -e '
 		s/%%VARIANT%%/'"$variant"'/;
 		s/%%VARIANT_EXTRAS%%/'"${extras[$variant]}"'/;
 		s/%%VERSION%%/'"$latest"'/;
