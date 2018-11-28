@@ -19,13 +19,7 @@ declare -A base=(
 	[fpm-alpine]='alpine'
 )
 
-latest="$(
-	git ls-remote --tags https://github.com/roundcube/roundcubemail.git \
-		| cut -d/ -f3 \
-		| grep -E -- '^([0-9]{1,}\.)+[0-9]{1,}$' \
-		| sort -V \
-		| tail -1
-)"
+latest="$(curl -sS https://roundcube.net/VERSION.txt)"
 
 set -x
 
