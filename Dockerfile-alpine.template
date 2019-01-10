@@ -5,7 +5,8 @@ LABEL maintainer="Thomas Bruederli <thomas@roundcube.net>"
 RUN set -ex; \
 	\
 	apk add --no-cache \
-		bash
+		bash \
+		coreutils
 
 RUN set -ex; \
 	\
