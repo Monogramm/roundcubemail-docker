@@ -13,7 +13,7 @@ before_script:
   - env | sort
   - name="roundcubemail"
   - image="roundcube/roundcubemail:${VERSION}${VARIANT:+-$VARIANT}"
-  - dir="${VARIANT}"
+  - dir="${VERSION}/${VARIANT}"
 
 script:
   - travis_retry docker build -t "$image" "$dir"
@@ -31,3 +31,6 @@ env:
   - VERSION=1.3.8 VARIANT=apache
   - VERSION=1.3.8 VARIANT=fpm
   - VERSION=1.3.8 VARIANT=fpm-alpine
+  - VERSION=1.4-rc1 VARIANT=apache
+  - VERSION=1.4-rc1 VARIANT=fpm
+  - VERSION=1.4-rc1 VARIANT=fpm-alpine
