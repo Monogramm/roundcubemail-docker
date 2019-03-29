@@ -58,42 +58,45 @@ join() {
 	echo "${out#$sep}"
 }
 
-latest="$(
-	git ls-remote --tags https://github.com/roundcube/roundcubemail.git \
-		| cut -d/ -f3 \
-		| grep -P -- '^[\d\.]+$' \
+latests="$(
+	git ls-remote --tags https://github.com/roundcube/roundcubemail.git  | cut -d/ -f3 \
+		| grep -P -- '^[\d\.]+(-rc\d+)?$' \
 		| sort -V \
-		| tail -1
+		| tail -2
 )"
 
 variants=( */ )
 variants=( "${variants[@]%/}" )
 
-for variant in "${variants[@]}"; do
-	commit="$(dockerfileCommit "$variant")"
-	fullversion="$(git show "$commit":"$variant/Dockerfile" | awk '$1 == "ENV" && $2 == "ROUNDCUBEMAIL_VERSION" { print $3; exit }')"
+for latest in "${latests[@]}"; do
 
-	versionAliases=( "$fullversion" "${fullversion%.*}" "${fullversion%.*.*}" )
-	if [ "$fullversion" = "$latest" ]; then
-		versionAliases+=( "latest" )
-	fi
+	for variant in "${variants[@]}"; do
+		commit="$(dockerfileCommit "$variant")"
+		fullversion="$(git show "$commit":"$latest/$variant/Dockerfile" | awk '$1 == "ENV" && $2 == "ROUNDCUBEMAIL_VERSION" { print $3; exit }')"
 
-	variantAliases=( "${versionAliases[@]/%/-$variant}" )
-	variantAliases=( "${variantAliases[@]//latest-}" )
+		versionAliases=( "$fullversion" "${fullversion%.*}" "${fullversion%.*.*}" )
+		if [ "$fullversion" = "$latest" ]; then
+			versionAliases+=( "latest" )
+		fi
 
-	if [ "$variant" = $defaultVariant ]; then
-		variantAliases+=( "${versionAliases[@]}" )
-	fi
+		variantAliases=( "${versionAliases[@]/%/-$variant}" )
+		variantAliases=( "${variantAliases[@]//latest-}" )
 
-	variantParent="$(awk 'toupper($1) == "FROM" { print $2 }' "$variant/Dockerfile")"
-	#variantArches="${parentRepoToArches[$variantParent]}"
-	variantArches="amd64 arm64v8 i386"
+		if [ "$variant" = $defaultVariant ]; then
+			variantAliases+=( "${versionAliases[@]}" )
+		fi
 
-	cat <<-EOE
+		variantParent="$(awk 'toupper($1) == "FROM" { print $2 }' "$latest/$variant/Dockerfile")"
+		#variantArches="${parentRepoToArches[$variantParent]}"
+		variantArches="amd64 arm64v8 i386"
 
-		Tags: $(join ', ' "${variantAliases[@]}")
-		Architectures: $(join ', ' $variantArches)
-		GitCommit: $commit
-		Directory: $variant
-	EOE
+		cat <<-EOE
+
+			Tags: $(join ', ' "${variantAliases[@]}")
+			Architectures: $(join ', ' $variantArches)
+			GitCommit: $commit
+			Directory: $latest/$variant
+		EOE
+	done
+
 done
