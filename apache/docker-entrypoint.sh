@@ -12,6 +12,15 @@ if [[ "$1" == apache2* ]] || [ "$1" == php-fpm ]; then
     fi
     tar cf - --one-file-system -C /usr/src/roundcubemail . | tar xf -
     echo >&2 "Complete! ROUNDCUBEMAIL has been successfully copied to $PWD"
+  elif [ /usr/src/roundcubemail/CHANGELOG -nt CHANGELOG ]; then
+    echo >&2 "updating roundcubemail now..."
+
+    # Upgrade from source to HTML folder
+    /usr/src/roundcubemail/bin/installto.sh $PWD
+
+    # Post-Upgrade Activities
+    ./bin/indexcontacts.sh
+
   fi
 
   if [ ! -z "${!POSTGRES_ENV_POSTGRES_*}" ] || [ "$ROUNDCUBEMAIL_DB_TYPE" == "pgsql" ]; then
