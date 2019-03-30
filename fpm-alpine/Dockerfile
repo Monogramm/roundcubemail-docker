@@ -10,6 +10,9 @@ RUN set -ex; \
 
 RUN set -ex; \
 	\
+	apk add --no-cache \
+		rsync \
+	; \
 	apk add --no-cache --virtual .build-deps \
 		icu-dev \
 		libjpeg-turbo-dev \
