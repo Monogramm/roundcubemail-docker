@@ -58,12 +58,10 @@ join() {
 	echo "${out#$sep}"
 }
 
-latests="$(
-	git ls-remote --tags https://github.com/roundcube/roundcubemail.git  | cut -d/ -f3 \
+latests=( $( git ls-remote --tags https://github.com/roundcube/roundcubemail.git  | cut -d/ -f3 \
 		| grep -P -- '^[\d\.]+(-rc\d+)?$' \
 		| sort -V \
-		| tail -2
-)"
+		| tail -2 ) )
 
 variants=( */ )
 variants=( "${variants[@]%/}" )
@@ -72,7 +70,7 @@ for latest in "${latests[@]}"; do
 
 	for variant in "${variants[@]}"; do
 		commit="$(dockerfileCommit "$variant")"
-		fullversion="$(git show "$commit":"$latest/$variant/Dockerfile" | awk '$1 == "ENV" && $2 == "ROUNDCUBEMAIL_VERSION" { print $3; exit }')"
+		fullversion="$(git show "$commit":"images/$latest/$variant/Dockerfile" | awk '$1 == "ENV" && $2 == "ROUNDCUBEMAIL_VERSION" { print $3; exit }')"
 
 		versionAliases=( "$fullversion" "${fullversion%.*}" "${fullversion%.*.*}" )
 		if [ "$fullversion" = "$latest" ]; then
@@ -86,7 +84,7 @@ for latest in "${latests[@]}"; do
 			variantAliases+=( "${versionAliases[@]}" )
 		fi
 
-		variantParent="$(awk 'toupper($1) == "FROM" { print $2 }' "$latest/$variant/Dockerfile")"
+		variantParent="$(awk 'toupper($1) == "FROM" { print $2 }' "images/$latest/$variant/Dockerfile")"
 		#variantArches="${parentRepoToArches[$variantParent]}"
 		variantArches="amd64 arm64v8 i386"
 
@@ -95,7 +93,7 @@ for latest in "${latests[@]}"; do
 			Tags: $(join ', ' "${variantAliases[@]}")
 			Architectures: $(join ', ' $variantArches)
 			GitCommit: $commit
-			Directory: $latest/$variant
+			Directory: images/$latest/$variant
 		EOE
 	done
 

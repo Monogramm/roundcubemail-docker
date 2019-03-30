@@ -27,17 +27,15 @@ function version_greater_or_equal() {
 	[[ "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1" || "$1" == "$2" ]];
 }
 
-latest="$(curl -sS https://roundcube.net/VERSION.txt)"
-
-latests=( $latest 1.4-rc1 )
-
-# FIXME Cannot use GitHub tags because older versions use `vX.Y.Z` instead of `X.Y.Z`
-# Will be better if GitHub implements sorting by date...
-#$( curl -fsSL 'https://api.github.com/repos/roundcube/roundcubemail/tags' |tac|tac| \
-#	grep -oE '[[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+' | \
-#	sort -urV )
+latests=( $( git ls-remote --tags https://github.com/roundcube/roundcubemail.git  | cut -d/ -f3 \
+		| grep -P -- '^[\d\.]+(-rc\d+)?$' \
+		| sort -V ) )
 
 #set -x
+
+# Remove existing images
+echo "reset docker images"
+find ./images -maxdepth 1 -type d -regextype sed -regex '\./images/[[:digit:]]\+\.[[:digit:]]\+' -exec rm -r '{}' \;
 
 echo "update docker images"
 travisEnv=
@@ -48,9 +46,9 @@ for latest in "${latests[@]}"; do
 	if version_greater_or_equal "$version" "$min_version"; then
 
 		for variant in apache fpm fpm-alpine; do
-			dir="$version/$variant"
+			dir="images/$version/$variant"
             if [ -d "$dir" ]; then
-                rm -rf "$dir"
+                continue
             fi
 
             echo "generating $latest [$version] $variant"
