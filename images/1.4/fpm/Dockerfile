@@ -1,4 +1,4 @@
-FROM php:7.1-apache
+FROM php:7.1-fpm
 LABEL maintainer="Thomas Bruederli <thomas@roundcube.net>"
 
 RUN set -ex; \
@@ -6,9 +6,6 @@ RUN set -ex; \
 	\
 	savedAptMark="$(apt-mark showmanual)"; \
 	\
-	apt-get install -y --no-install-recommends \
-		rsync \
-	; \
 	apt-get install -y --no-install-recommends \
 		libfreetype6-dev \
 		libicu-dev \
@@ -48,15 +45,13 @@ RUN set -ex; \
 	apt-get purge -y --auto-remove -o APT::AutoRemove::RecommendsImportant=false; \
 	rm -rf /var/lib/apt/lists/*
 
-# enable mod_rewrite
-RUN a2enmod rewrite
 
 # expose these volumes
 VOLUME /var/roundcube/config
 VOLUME /tmp/roundcube-temp
 
 # Define Roundcubemail version
-ENV ROUNDCUBEMAIL_VERSION 1.3.8
+ENV ROUNDCUBEMAIL_VERSION 1.4-rc1
 
 # Download package and extract to web volume
 RUN set -ex; \
@@ -87,4 +82,4 @@ COPY php.ini /usr/local/etc/php/conf.d/roundcube-defaults.ini
 COPY docker-entrypoint.sh /
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
-CMD ["apache2-foreground"]
+CMD ["php-fpm"]

@@ -7,9 +7,6 @@ RUN set -ex; \
 	savedAptMark="$(apt-mark showmanual)"; \
 	\
 	apt-get install -y --no-install-recommends \
-		rsync \
-	; \
-	apt-get install -y --no-install-recommends \
 		libfreetype6-dev \
 		libicu-dev \
 		libjpeg62-turbo-dev \
@@ -56,7 +53,7 @@ VOLUME /var/roundcube/config
 VOLUME /tmp/roundcube-temp
 
 # Define Roundcubemail version
-ENV ROUNDCUBEMAIL_VERSION 1.3.8
+ENV ROUNDCUBEMAIL_VERSION 1.4-rc1
 
 # Download package and extract to web volume
 RUN set -ex; \
