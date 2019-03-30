@@ -7,10 +7,6 @@ RUN set -ex; \
 	apk add --no-cache \
 		bash \
 		coreutils
-
-RUN set -ex; \
-	\
-	apk add --no-cache \
 		rsync \
 	; \
 	apk add --no-cache --virtual .build-deps \
