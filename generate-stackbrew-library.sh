@@ -60,8 +60,8 @@ join() {
 
 latests=( $( git ls-remote --tags https://github.com/roundcube/roundcubemail.git  | cut -d/ -f3 \
 		| grep -P -- '^[\d\.]+(-rc\d+)?$' \
-		| sort -V \
-		| tail -2 ) )
+		| sort -rV \
+		| head -2 ) )
 
 variants=( */ )
 variants=( "${variants[@]%/}" )

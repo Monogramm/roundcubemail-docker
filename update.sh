@@ -29,7 +29,7 @@ function version_greater_or_equal() {
 
 latests=( $( git ls-remote --tags https://github.com/roundcube/roundcubemail.git  | cut -d/ -f3 \
 		| grep -P -- '^[\d\.]+(-rc\d+)?$' \
-		| sort -V ) )
+		| sort -rV ) )
 
 #set -x
 
@@ -40,8 +40,9 @@ find ./images -maxdepth 1 -type d -regextype sed -regex '\./images/[[:digit:]]\+
 echo "update docker images"
 travisEnv=
 for latest in "${latests[@]}"; do
-	version=$(echo "$latest" | cut -d. -f1-2)
+	version=$(echo "$latest" | cut -d. -f1-2 | cut -d- -f1)
 
+	echo "checking $latest ($version)..."
 	# Only add versions >= "$min_version"
 	if version_greater_or_equal "$version" "$min_version"; then
 
@@ -68,6 +69,8 @@ for latest in "${latests[@]}"; do
 			travisEnv+='\n  - VERSION='"$latest"' VARIANT='"$variant"
 		done
 
+	else
+		break
 	fi
 
 done
@@ -75,3 +78,5 @@ done
 
 travis="$(awk -v 'RS=\n\n' '$1 == "env:" { $0 = "env:'"$travisEnv"'" } { printf "%s%s", $0, RS }' .travis.yml)"
 echo "$travis" > .travis.yml
+
+echo "update finished"
