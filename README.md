@@ -1,15 +1,15 @@
 
-[![Build Status](https://travis-ci.org/roundcube/roundcubemail-docker.svg)](https://travis-ci.org/roundcube/roundcubemail-docker)
-[![Docker Pulls](https://img.shields.io/docker/pulls/roundcube/roundcubemail.svg)](https://hub.docker.com/r/roundcube/roundcubemail/)
-[![](https://images.microbadger.com/badges/version/roundcube/roundcubemail.svg)](https://microbadger.com/images/roundcube/roundcubemail)
-[![](https://images.microbadger.com/badges/image/roundcube/roundcubemail.svg)](https://microbadger.com/images/roundcube/roundcubemail)
+[![Build Status](https://travis-ci.org/Monogramm/docker-roundcube-base.svg)](https://travis-ci.org/Monogramm/docker-roundcube-base)
+[![Docker Pulls](https://img.shields.io/docker/pulls/monogramm/docker-roundcube-base.svg)](https://hub.docker.com/r/monogramm/docker-roundcube-base/)
+[![](https://images.microbadger.com/badges/version/monogramm/docker-roundcube-base.svg)](https://microbadger.com/images/monogramm/docker-roundcube-base)
+[![](https://images.microbadger.com/badges/image/monogramm/docker-roundcube-base.svg)](https://microbadger.com/images/monogramm/docker-roundcube-base)
 
 # Running Roundcube in a Docker Container
 
 The simplest method is to run the official image:
 
 ```
-docker run -e ROUNDCUBEMAIL_DEFAULT_HOST=mail -e ROUNDCUBEMAIL_SMTP_SERVER=mail -d roundcube/roundcubemail
+docker run -e ROUNDCUBEMAIL_DEFAULT_HOST=mail -e ROUNDCUBEMAIL_SMTP_SERVER=mail -d monogramm/docker-roundcube-base
 ```
 
 where `mail` should be replaced by your host name for the IMAP and SMTP server.
@@ -54,7 +54,7 @@ has privileges to create tables.
 Run it with a link to the MySQL host and the username/password variables:
 
 ```
-docker run --link=mysql:mysql -d roundcube/roundcubemail
+docker run --link=mysql:mysql -d monogramm/docker-roundcube-base
 ```
 
 ### Advanced configuration
@@ -65,10 +65,10 @@ where additional config files (`*.php`) are searched and included. Mount a local
 files - check for valid PHP syntax - when starting the Docker container:
 
 ```
-docker run -v ./config/:/var/roundcube/config/ -d roundcube/roundcubemail
+docker run -v ./config/:/var/roundcube/config/ -d monogramm/docker-roundcube-base
 ```
 
-Check the Roundcube Webmail wiki for a reference of [Roundcube config options](https://github.com/roundcube/roundcubemail/wiki/Configuration).
+Check the Roundcube Webmail wiki for a reference of [Roundcube config options](https://github.com/monogramm/docker-roundcube-base/wiki/Configuration).
 
 Customized PHP settings can be implemented by mounting a configuration file to `/usr/local/etc/php/conf.d/zzz_roundcube-custom.ini`.
 For example, it may be used to increase the PHP memory limit (`memory_limit=128M`).
