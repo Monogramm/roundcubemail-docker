@@ -1,6 +1,8 @@
 
 [![Build Status](https://travis-ci.org/roundcube/roundcubemail-docker.svg)](https://travis-ci.org/roundcube/roundcubemail-docker)
 [![Docker Pulls](https://img.shields.io/docker/pulls/roundcube/roundcubemail.svg)](https://hub.docker.com/r/roundcube/roundcubemail/)
+[![](https://images.microbadger.com/badges/version/roundcube/roundcubemail.svg)](https://microbadger.com/images/roundcube/roundcubemail)
+[![](https://images.microbadger.com/badges/image/roundcube/roundcubemail.svg)](https://microbadger.com/images/roundcube/roundcubemail)
 
 # Running Roundcube in a Docker Container
 
