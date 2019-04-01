@@ -19,6 +19,12 @@ declare -A base=(
 	[fpm-alpine]='alpine'
 )
 
+variants=(
+	apache
+	fpm
+	fpm-alpine
+)
+
 min_version='1.3'
 
 
@@ -47,7 +53,7 @@ for latest in "${latests[@]}"; do
 	# Only add versions >= "$min_version"
 	if version_greater_or_equal "$version" "$min_version"; then
 
-		for variant in apache fpm fpm-alpine; do
+		for variant in "${variants[@]}"; do
 			dir="images/$version/$variant"
             if [ -d "$dir" ]; then
                 continue
@@ -71,6 +77,7 @@ for latest in "${latests[@]}"; do
 		done
 
 	else
+		# Stop when we reached minium version
 		break
 	fi
 

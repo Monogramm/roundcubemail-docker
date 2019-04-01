@@ -63,8 +63,11 @@ latests=( $( git ls-remote --tags https://github.com/roundcube/roundcubemail.git
 		| sort -rV \
 		| head -2 ) )
 
-variants=( */ )
-variants=( "${variants[@]%/}" )
+variants=(
+	apache
+	fpm
+	fpm-alpine
+)
 
 for latest in "${latests[@]}"; do
 
