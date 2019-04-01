@@ -1,5 +1,5 @@
 
-[![Build Status](https://travis-ci.org/Monogramm/docker-roundcube-base.svg)](https://travis-ci.org/Monogramm/docker-roundcube-base)
+[![Build Status](https://travis-ci.org/Monogramm/roundcubemail-docker.svg)](https://travis-ci.org/Monogramm/roundcubemail-docker)
 [![Docker Pulls](https://img.shields.io/docker/pulls/monogramm/docker-roundcube-base.svg)](https://hub.docker.com/r/monogramm/docker-roundcube-base/)
 [![](https://images.microbadger.com/badges/version/monogramm/docker-roundcube-base.svg)](https://microbadger.com/images/monogramm/docker-roundcube-base)
 [![](https://images.microbadger.com/badges/image/monogramm/docker-roundcube-base.svg)](https://microbadger.com/images/monogramm/docker-roundcube-base)
