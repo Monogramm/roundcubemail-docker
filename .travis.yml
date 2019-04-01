@@ -12,16 +12,17 @@ branches:
 
 before_script:
   - env | sort
-  - name="roundcubemail"
-  - image="roundcube/roundcubemail:${VERSION}${VARIANT:+-$VARIANT}"
   - dir="images/${VERSION}/${VARIANT}"
+  - image="roundcube/roundcubemail"
+  - tag="travis-${VERSION}${VARIANT:+-$VARIANT}"
+  - name="roundcubemail"
 
 script:
-  - travis_retry docker build -t "$image" "$dir"
-  - docker images
-  - docker run --name "$name" -d "$image" "$dir"
+  - travis_retry docker build -t "$image:$tag" "$dir"
+  - docker images | grep "$tag"
 
 after_script:
+  - docker run --name "$name" -d "$image:$tag" "$dir"
   - docker ps
   - docker logs "$name"
 
