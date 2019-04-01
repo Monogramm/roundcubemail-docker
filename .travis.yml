@@ -14,7 +14,7 @@ before_script:
   - env | sort
   - name="roundcubemail"
   - image="roundcube/roundcubemail:${VERSION}${VARIANT:+-$VARIANT}"
-  - dir="${VERSION}/${VARIANT}"
+  - dir="images/${VERSION}/${VARIANT}"
 
 script:
   - travis_retry docker build -t "$image" "$dir"
