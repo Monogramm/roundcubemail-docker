@@ -1,15 +1,18 @@
 FROM php:7.1-fpm-alpine
 LABEL maintainer="Thomas Bruederli <thomas@roundcube.net>"
 
+COPY docker-entrypoint.sh /
+
 # entrypoint.sh and cron.sh dependencies
 RUN set -ex; \
 	\
+    chmod 755 /docker-entrypoint.sh; \
+	\
 	apk add --no-cache \
 		bash \
-		coreutils
-
-RUN set -ex; \
-	\
+		coreutils \
+		rsync \
+	; \
 	apk add --no-cache --virtual .build-deps \
 		icu-dev \
 		libjpeg-turbo-dev \
@@ -65,7 +68,7 @@ RUN set -ex; \
 	tar -xf roundcubemail.tar.gz -C /usr/src/; \
 	gpgconf --kill all; \
 	rm -r "$GNUPGHOME" roundcubemail.tar.gz.asc roundcubemail.tar.gz; \
-# upstream tarballs include ./roundcubemail-${ROUNDCUBEMAIL_VERSION}/ so this gives us /usr/src/roundcubemail-${ROUNDCUBEMAIL_VERSION}
+	# upstream tarballs include ./roundcubemail-${ROUNDCUBEMAIL_VERSION}/ so this gives us /usr/src/roundcubemail-${ROUNDCUBEMAIL_VERSION}
 	mv /usr/src/roundcubemail-${ROUNDCUBEMAIL_VERSION} /usr/src/roundcubemail; \
 	rm -rf /usr/src/roundcubemail/installer; \
 	apk del .fetch-deps
@@ -75,8 +78,6 @@ RUN curl -fL https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait
 
 # use custom PHP settings
 COPY php.ini /usr/local/etc/php/conf.d/roundcube-defaults.ini
-
-COPY docker-entrypoint.sh /
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["php-fpm"]

@@ -1,5 +1,5 @@
 #!/bin/bash
-# set -ex
+set -e
 
 # PWD=`pwd`
 
@@ -16,7 +16,7 @@ if [[ "$1" == apache2* ]] || [ "$1" == php-fpm ]; then
     echo >&2 "updating roundcubemail now..."
 
     # Upgrade from source to HTML folder
-    /usr/src/roundcubemail/bin/installto.sh $PWD
+    echo "y" | /usr/src/roundcubemail/bin/installto.sh $PWD
 
     # Post-Upgrade Activities
     ./bin/indexcontacts.sh

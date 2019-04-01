@@ -1,11 +1,19 @@
 FROM php:7.1-fpm
 LABEL maintainer="Thomas Bruederli <thomas@roundcube.net>"
 
+COPY docker-entrypoint.sh /
+
 RUN set -ex; \
+	\
+    chmod 755 /docker-entrypoint.sh; \
+	\
 	apt-get update; \
 	\
 	savedAptMark="$(apt-mark showmanual)"; \
 	\
+	apt-get install -y --no-install-recommends \
+		rsync \
+	; \
 	apt-get install -y --no-install-recommends \
 		libfreetype6-dev \
 		libicu-dev \
@@ -78,8 +86,6 @@ RUN curl -fL https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait
 
 # use custom PHP settings
 COPY php.ini /usr/local/etc/php/conf.d/roundcube-defaults.ini
-
-COPY docker-entrypoint.sh /
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["php-fpm"]

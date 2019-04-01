@@ -35,12 +35,13 @@ latests=( $( git ls-remote --tags https://github.com/roundcube/roundcubemail.git
 
 # Remove existing images
 echo "reset docker images"
-find ./images -maxdepth 1 -type d -regextype sed -regex '\./images/[[:digit:]]\+\.[[:digit:]]\+' -exec rm -r '{}' \;
+rm -rf ./images/
+mkdir -p ./images/
 
 echo "update docker images"
 travisEnv=
 for latest in "${latests[@]}"; do
-	version=$(echo "$latest" | cut -d. -f1-2 | cut -d- -f1)
+	version=$(echo "$latest" | cut -d. -f1-2)
 
 	echo "checking $latest ($version)..."
 	# Only add versions >= "$min_version"
@@ -66,7 +67,7 @@ for latest in "${latests[@]}"; do
 				s/%%CMD%%/'"${cmd[$variant]}"'/;
 			' "$dir/Dockerfile"
 
-			travisEnv+='\n  - VERSION='"$latest"' VARIANT='"$variant"
+			travisEnv+='\n  - VERSION='"$version"' VARIANT='"$variant"
 		done
 
 	else
