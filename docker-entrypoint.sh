@@ -1,10 +1,17 @@
 #!/bin/bash
 # set -ex
 
+# version_greater A B returns whether A > B
+  function version_greater() {
+    [[ "$(printf '%s\n' "$@" | sort -V | head -n 1)" != "$1" ]];
+  }
+
 # PWD=`pwd`
 
 if [[ "$1" == apache2* ]] || [ "$1" == php-fpm ]; then
+
   if ! [ -e index.php -a -e bin/installto.sh ]; then
+
     echo >&2 "roundcubemail not found in $PWD - copying now..."
     if [ "$(ls -A)" ]; then
       echo >&2 "WARNING: $PWD is not empty - press Ctrl+C now if this is an error!"
@@ -12,14 +19,38 @@ if [[ "$1" == apache2* ]] || [ "$1" == php-fpm ]; then
     fi
     tar cf - --one-file-system -C /usr/src/roundcubemail . | tar xf -
     echo >&2 "Complete! ROUNDCUBEMAIL has been successfully copied to $PWD"
+
   elif [ /usr/src/roundcubemail/CHANGELOG -nt CHANGELOG ]; then
-    echo >&2 "updating roundcubemail now..."
+    echo >&2 "roundcubemail changes detected..."
 
-    # Upgrade from source to HTML folder
-    echo "y" | /usr/src/roundcubemail/bin/installto.sh $PWD
+    # Detect installed version (but ignore git/beta/rc detail)
+    image_version=$(echo "${ROUNDCUBEMAIL_VERSION}" | cut -d- -f1)
+    installed_version="0.0.0~unknown"
+    if [ -f program/include/iniset.php ]; then
+      installed_version=$(grep -o "RCMAIL_VERSION', '.*\(-git\|-beta\|-rc.*\)\?'" program/include/iniset.php | cut -d\' -f3 | cut -d- -f1)
+    fi
 
-    # Post-Upgrade Activities
-    ./bin/indexcontacts.sh
+    if version_greater "$installed_version" "$image_version"; then
+      echo "Can't start roundcubemail because the version of the data ($installed_version) is higher than the docker image version ($image_version) and downgrading is not supported. Are you sure you have pulled the newest image version?"
+      exit 1
+
+    elif version_greater "$image_version" "$installed_version"; then
+      echo >&2 "updating roundcubemail '$installed_version' to '$image_version' now..."
+
+      # Upgrade from source to HTML folder
+      echo "y" | /usr/src/roundcubemail/bin/installto.sh $PWD
+
+      # Post-Upgrade Activities
+      ./bin/indexcontacts.sh
+      echo >&2 "Complete! ROUNDCUBEMAIL has been successfully updated to $PWD"
+
+    else
+      echo >&2 "force update '$installed_version' roundcubemail to '$image_version' now..."
+
+      tar cf - --one-file-system -C /usr/src/roundcubemail . | tar xf -
+      echo >&2 "Complete! ROUNDCUBEMAIL has been forcefully updated to $PWD"
+
+    fi
 
   fi
 
