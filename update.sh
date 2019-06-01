@@ -1,6 +1,12 @@
 #!/bin/bash
 set -eu
 
+declare -A compose=(
+	[apache]='apache'
+	[fpm]='fpm'
+	[fpm-alpine]='fpm'
+)
+
 declare -A cmd=(
 	[apache]='apache2-foreground'
 	[fpm]='php-fpm'
@@ -72,6 +78,9 @@ for latest in "${latests[@]}"; do
 				s/%%VERSION%%/'"$latest"'/;
 				s/%%CMD%%/'"${cmd[$variant]}"'/;
 			' "$dir/Dockerfile"
+
+			cp ".dockerignore" "$dir/.dockerignore"
+			cp "docker-compose_${compose[$variant]}.yml" "$dir/docker-compose.yml"
 
 			travisEnv+='\n  - VERSION='"$version"' VARIANT='"$variant"
 		done

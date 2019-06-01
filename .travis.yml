@@ -13,18 +13,16 @@ branches:
 before_script:
   - env | sort
   - dir="images/${VERSION}/${VARIANT}"
-  - image="roundcube/roundcubemail"
-  - tag="travis-${VERSION}${VARIANT:+-$VARIANT}"
-  - name="roundcubemail"
 
 script:
-  - travis_retry docker build -t "$image:$tag" "$dir"
-  - docker images | grep "$tag"
-
-after_script:
-  - docker run --name "$name" -d "$image:$tag" "$dir"
-  - docker ps
-  - docker logs "$name"
+  - cd "$dir"
+  - docker-compose build
+  - docker images
+  - travis_retry docker-compose up -d && sleep 60
+  - docker-compose ps
+  - docker-compose logs
+  - docker-compose ps "roundcubedb" | grep "Up"
+  - docker-compose ps "roundcube" | grep "Up"
 
 notifications:
   email: false
