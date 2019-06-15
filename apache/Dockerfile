@@ -1,4 +1,4 @@
-FROM php:7.1-apache
+FROM php:7.2-apache
 LABEL maintainer="Thomas Bruederli <thomas@roundcube.net>"
 
 RUN set -ex; \
@@ -50,10 +50,11 @@ RUN a2enmod rewrite
 
 # expose these volumes
 VOLUME /var/roundcube/config
+VOLUME /var/www/html
 VOLUME /tmp/roundcube-temp
 
 # Define Roundcubemail version
-ENV ROUNDCUBEMAIL_VERSION 1.3.8
+ENV ROUNDCUBEMAIL_VERSION 1.3.9
 
 # Download package and extract to web volume
 RUN set -ex; \
@@ -66,7 +67,7 @@ RUN set -ex; \
 	# workaround for "Cannot assign requested address", see e.g. https://github.com/inversepath/usbarmory-debian-base_image/issues/9
 	echo "disable-ipv6" > "$GNUPGHOME/dirmngr.conf"; \
 	# ha.pool.sks-keyservers.net seems to be unreliable, use pgp.mit.edu as fallback
-	gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys F3E4C04BB3DB5D4215C45F7F5AB2BAA141C4F7D5 || gpg --keyserver pgp.mit.edu --recv-keys F3E4C04BB3DB5D4215C45F7F5AB2BAA141C4F7D5; \
+	gpg --batch --keyserver ha.pool.sks-keyservers.net --recv-keys F3E4C04BB3DB5D4215C45F7F5AB2BAA141C4F7D5 || gpg --batch --keyserver pgp.mit.edu --recv-keys F3E4C04BB3DB5D4215C45F7F5AB2BAA141C4F7D5; \
 	gpg --batch --verify roundcubemail.tar.gz.asc roundcubemail.tar.gz; \
 	tar -xf roundcubemail.tar.gz -C /usr/src/; \
 	gpgconf --kill all; \

@@ -32,13 +32,15 @@ By default, the image will use a local SQLite database for storing user account 
 It'll be created inside the `/var/www/html` directory and can be backed up from there. Please note that
 this option should not be used for production environments.
 
-### Connect to a MySQL Database
+### Connect to a Database
 
 The recommended way to run Roundcube is connected to a MySQL database. Specify the following env variables to do so:
 
 `ROUNDCUBEMAIL_DB_TYPE` - Database provider; currently supported: `mysql`, `pgsql`, `sqlite`
 
 `ROUNDCUBEMAIL_DB_HOST` - Host (or Docker instance) name of the database service; defaults to `mysql` or `postgres` depending on linked containers.
+
+`ROUNDCUBEMAIL_DB_PORT` - Port number of the database service; defaults to `3306` or `5432` depending on linked containers.
 
 `ROUNDCUBEMAIL_DB_USER` - The database username for Roundcube; defaults to `root` on `mysql`
 
@@ -74,10 +76,42 @@ For example, it may be used to increase the PHP memory limit (`memory_limit=128M
 ## Building a Docker image
 
 Use the `Dockerfile` in this repository to build your own Docker image.
-It pulls the latest build of Roundcube Webmail from the Github download page and builds it on top of a `php:7.1-apache` Docker image.
+It pulls the latest build of Roundcube Webmail from the Github download page and builds it on top of a `php:7.2-apache` Docker image.
 
 Build it from this directory with
 
 ```
 docker build -t roundcubemail .
+```
+
+You can also create your own Docker image by extending from this image.
+
+For instance, you could extend this image to add composer and install requirements for builtin plugins or even external plugins:
+```Dockerfile
+FROM roundcube/roundcubemail:latest
+
+RUN set -ex; \
+    apt-get update; \
+    apt-get install -y --no-install-recommends \
+        git \
+    ; \
+    \
+    curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/bin --filename=composer; \
+    mv /usr/src/roundcubemail/composer.json-dist /usr/src/roundcubemail/composer.json; \
+    \
+    composer \
+        --working-dir=/usr/src/roundcubemail/ \
+        --prefer-dist --prefer-stable \
+        --no-update --no-interaction \
+        --optimize-autoloader --apcu-autoloader \
+        require \
+            johndoh/contextmenu \
+    ; \
+    composer \
+        --working-dir=/usr/src/roundcubemail/ \
+        --prefer-dist --no-dev \
+        --no-interaction \
+        --optimize-autoloader --apcu-autoloader \
+        update;
+
 ```
