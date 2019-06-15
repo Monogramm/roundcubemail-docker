@@ -7,6 +7,12 @@ declare -A cmd=(
 	[fpm-alpine]='php-fpm'
 )
 
+declare -A compose=(
+	[apache]='apache'
+	[fpm]='fpm'
+	[fpm-alpine]='fpm'
+)
+
 declare -A extras=(
 	[apache]='\n# enable mod_rewrite\nRUN a2enmod rewrite'
 	[fpm]=''
@@ -32,6 +38,10 @@ for variant in apache fpm fpm-alpine; do
 	cp $template "$dir/Dockerfile"
 	cp docker-entrypoint.sh "$dir/docker-entrypoint.sh"
 	cp php.ini "$dir/php.ini"
+
+	cp .dockerignore "$dir/.dockerignore"
+	cp "docker-compose_${compose[$variant]}.yml" "$dir/docker-compose.yml"
+
 	sed -E -i'' -e '
 		s/%%VARIANT%%/'"$variant"'/;
 		s/%%VARIANT_EXTRAS%%/'"${extras[$variant]}"'/;

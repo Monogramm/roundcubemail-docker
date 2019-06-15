@@ -1,0 +1,2 @@
+# Ignore files when building container
+docker-compose.yml
