@@ -27,7 +27,22 @@ script:
 notifications:
   email: false
 
+matrix:
+  allow_failures:
+    - env: VERSION=1.4-rc2 VARIANT=apache
+    - env: VERSION=1.4-rc2 VARIANT=fpm
+    - env: VERSION=1.4-rc2 VARIANT=fpm-alpine
+    - env: VERSION=1.4-rc1 VARIANT=apache
+    - env: VERSION=1.4-rc1 VARIANT=fpm
+    - env: VERSION=1.4-rc1 VARIANT=fpm-alpine
+
 env:
+  - VERSION=1.4 VARIANT=apache
+  - VERSION=1.4 VARIANT=fpm
+  - VERSION=1.4 VARIANT=fpm-alpine
+  - VERSION=1.4-rc2 VARIANT=apache
+  - VERSION=1.4-rc2 VARIANT=fpm
+  - VERSION=1.4-rc2 VARIANT=fpm-alpine
   - VERSION=1.4-rc1 VARIANT=apache
   - VERSION=1.4-rc1 VARIANT=fpm
   - VERSION=1.4-rc1 VARIANT=fpm-alpine
