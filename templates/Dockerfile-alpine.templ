@@ -1,8 +1,33 @@
-FROM php:7.4-%%VARIANT%%
-LABEL maintainer="Thomas Bruederli <thomas@roundcube.net>"
+FROM php:8.4-%%VARIANT%% AS root
 
-# entrypoint.sh and installto.sh dependencies
+# Define Roundcubemail version
+# Use an ARG to make it overwritable from a build argument and not leak into the container runtime
+# environment.
+ARG ROUNDCUBEMAIL_VERSION=%%VERSION%%
+
+# Define the GPG key used for the bundle verification process
+ARG ROUNDCUBEMAIL_KEYID="F3E4 C04B B3DB 5D42 15C4  5F7F 5AB2 BAA1 41C4 F7D5"
+
+# PHP extensions that are not bundled with PHP, built from their release source tarballs.
+# Versions and checksums are maintained by update.sh.
+ARG PHP_EXT_IMAGICK_VERSION=%%IMAGICK_VERSION%%
+ARG PHP_EXT_IMAGICK_SHA256=%%IMAGICK_SHA256%%
+ARG PHP_EXT_REDIS_VERSION=%%REDIS_VERSION%%
+ARG PHP_EXT_REDIS_SHA256=%%REDIS_SHA256%%
+ARG PHP_EXT_PSPELL_VERSION=%%PSPELL_VERSION%%
+ARG PHP_EXT_PSPELL_SHA256=%%PSPELL_SHA256%%
+
+LABEL maintainer="Thomas Bruederli <thomas@roundcube.net>"
+LABEL org.opencontainers.image.source="https://github.com/roundcube/roundcubemail-docker"
+LABEL org.opencontainers.image.version="${ROUNDCUBEMAIL_VERSION}"
+
+# This should be done by the upstream images, but as long as they don't do it,
+# we rather use our own hands than suffer from outdated packages.
+# Kept as standalone command to make it stand out and be easy to remove.
+RUN apk upgrade --no-cache
+
 RUN set -ex; \
+	if [ "%%VARIANT%%" = "apache" ]; then a2enmod rewrite; fi; \
 	\
 	apk add --no-cache \
 		bash \
@@ -10,7 +35,8 @@ RUN set -ex; \
 		rsync \
 		tzdata \
 		aspell \
-		aspell-en
+		aspell-en \
+		unzip
 
 RUN set -ex; \
 	\
@@ -24,13 +50,34 @@ RUN set -ex; \
 		libzip-dev \
 		libtool \
 		openldap-dev \
+		cyrus-sasl-dev \
 		postgresql-dev \
 		sqlite-dev \
 		aspell-dev \
 	; \
 	\
+# Download and verify the sources of the non-bundled extensions into the PHP source tree,
+# so docker-php-ext-install can build them like the bundled ones.
+# Using curl and docker-php-ext-install instead of PIE, since PIE would be an additional tool, and doesn't
+# (yet?) provide pspell, and requires additional build tools for imagick.
+	fetchAndExtractPHPExtension() { \
+		extName="$1"; \
+		extUrl="$2"; \
+		extShasum="$3"; \
+		curl -fsSL "$extUrl" -o "/tmp/$extName.tar.gz"; \
+		echo "$extShasum  /tmp/$extName.tar.gz" | sha256sum -c -; \
+		mkdir -p "/usr/src/php/ext/$extName"; \
+		tar -xzf "/tmp/$extName.tar.gz" -C "/usr/src/php/ext/$extName" --strip-components=1; \
+		rm "/tmp/$extName.tar.gz"; \
+	}; \
+	docker-php-source extract; \
+	fetchAndExtractPHPExtension imagick "https://github.com/Imagick/imagick/archive/refs/tags/${PHP_EXT_IMAGICK_VERSION}.tar.gz" "$PHP_EXT_IMAGICK_SHA256"; \
+# imagick's git sources contain a version placeholder that is normally filled in by its release packaging.
+	sed -i -e "s/@PACKAGE_VERSION@/${PHP_EXT_IMAGICK_VERSION}/" /usr/src/php/ext/imagick/php_imagick.h; \
+	fetchAndExtractPHPExtension redis "https://github.com/phpredis/phpredis/archive/refs/tags/${PHP_EXT_REDIS_VERSION}.tar.gz" "$PHP_EXT_REDIS_SHA256"; \
+	fetchAndExtractPHPExtension pspell "https://github.com/php/pecl-text-pspell/archive/refs/tags/${PHP_EXT_PSPELL_VERSION}.tar.gz" "$PHP_EXT_PSPELL_SHA256"; \
 	docker-php-ext-configure gd --with-jpeg --with-freetype; \
-	docker-php-ext-configure ldap; \
+	docker-php-ext-configure ldap --with-ldap-sasl; \
 	docker-php-ext-install \
 		exif \
 		gd \
@@ -41,45 +88,45 @@ RUN set -ex; \
 		pdo_sqlite \
 		zip \
 		pspell \
+		imagick \
+		redis \
 	; \
-	pecl install imagick redis; \
 	docker-php-ext-enable imagick opcache redis; \
+	docker-php-source delete; \
+# Display installed modules
+	php -m; \
 	\
+	extdir="$(php -r 'echo ini_get("extension_dir");')"; \
 	runDeps="$( \
-		scanelf --needed --nobanner --format '%n#p' --recursive /usr/local/lib/php/extensions \
+		scanelf --needed --nobanner --format '%n#p' --recursive $extdir \
 		| tr ',' '\n' \
 		| sort -u \
 		| awk 'system("[ -e /usr/local/lib/" $1 " ]") == 0 { next } { print "so:" $1 }' \
 		)"; \
 	apk add --virtual .roundcubemail-phpext-rundeps imagemagick $runDeps; \
-	apk del .build-deps
+	apk del .build-deps; \
+	err="$(php --version 3>&1 1>&2 2>&3)"; \
+	[ -z "$err" ] || (echo "Sanity check failed: php returned errors; $err"; exit 1;); \
+# include the wait-for-it.sh script (latest commit)
+	curl -fL https://raw.githubusercontent.com/vishnubob/wait-for-it/81b1373f17855a4dc21156cfe1694c31d7d1792e/wait-for-it.sh -o /wait-for-it.sh; \
+	chmod +x /wait-for-it.sh;
 
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-%%EXTRAS%%
 
-# expose these volumes
-VOLUME /var/roundcube/config
-VOLUME /var/roundcube/db
-VOLUME /var/www/html
-VOLUME /tmp/roundcube-temp
+# Use the default production configuration
+RUN mv "$PHP_INI_DIR/php.ini-production" "$PHP_INI_DIR/php.ini"
 
-# Define Roundcubemail version
-ENV ROUNDCUBEMAIL_VERSION %%VERSION%%
+# use custom PHP settings
+COPY php.ini /usr/local/etc/php/conf.d/roundcube-defaults.ini
 
-# Define the GPG key used for the bundle verification process
-ENV ROUNDCUBEMAIL_KEYID "F3E4 C04B B3DB 5D42 15C4  5F7F 5AB2 BAA1 41C4 F7D5"
+COPY --chmod=0755 docker-entrypoint.sh /
 
 # Download package and extract to web volume
 RUN set -ex; \
-	apk add --no-cache --virtual .fetch-deps \
-		gnupg \
-	; \
-	\
+	apk add --no-cache gnupg; \
 	curl -o roundcubemail.tar.gz -fSL https://github.com/roundcube/roundcubemail/releases/download/${ROUNDCUBEMAIL_VERSION}/roundcubemail-${ROUNDCUBEMAIL_VERSION}-complete.tar.gz; \
 	curl -o roundcubemail.tar.gz.asc -fSL https://github.com/roundcube/roundcubemail/releases/download/${ROUNDCUBEMAIL_VERSION}/roundcubemail-${ROUNDCUBEMAIL_VERSION}-complete.tar.gz.asc; \
 	export GNUPGHOME="$(mktemp -d)"; \
-	# workaround for "Cannot assign requested address", see e.g. https://github.com/inversepath/usbarmory-debian-base_image/issues/9
-	echo "disable-ipv6" > "$GNUPGHOME/dirmngr.conf"; \
 	curl -fSL https://roundcube.net/download/pubkey.asc -o /tmp/pubkey.asc; \
 	LC_ALL=C.UTF-8 gpg -n --show-keys --with-fingerprint --keyid-format=long /tmp/pubkey.asc | if [ $(grep -c -o 'Key fingerprint') != 1 ]; then echo 'The key file should contain only one GPG key'; exit 1; fi; \
 	LC_ALL=C.UTF-8 gpg -n --show-keys --with-fingerprint --keyid-format=long /tmp/pubkey.asc | if [ $(grep -c -o "${ROUNDCUBEMAIL_KEYID}") != 1 ]; then echo 'The key ID should be the roundcube one'; exit 1; fi; \
@@ -92,15 +139,17 @@ RUN set -ex; \
 	rm -r "$GNUPGHOME" roundcubemail.tar.gz.asc roundcubemail.tar.gz; \
 	rm -rf /usr/src/roundcubemail/installer; \
 	chown -R www-data:www-data /usr/src/roundcubemail/logs; \
-	apk del .fetch-deps
-
-# include the wait-for-it.sh script
-RUN curl -fL https://raw.githubusercontent.com/vishnubob/wait-for-it/master/wait-for-it.sh > /wait-for-it.sh && chmod +x /wait-for-it.sh
-
-# use custom PHP settings
-COPY php.ini /usr/local/etc/php/conf.d/roundcube-defaults.ini
-
-COPY docker-entrypoint.sh /
+# Create the config dir
+	mkdir -p /var/roundcube/config /var/roundcube/enigma; \
+	chown -R www-data:www-data /var/roundcube; \
+	chmod +t /var/roundcube
 
 ENTRYPOINT ["/docker-entrypoint.sh"]
 CMD ["%%CMD%%"]
+
+
+#### non-root stage
+
+FROM root AS nonroot
+
+USER 82:82

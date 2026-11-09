@@ -1,0 +1,14 @@
+services:
+  roundcubemail:
+    image: roundcube/roundcubemail:latest-nonroot
+    container_name: roundcubemail
+    volumes:
+    #  - ./data/config/:/var/roundcube/config
+    #  - ./data/plugins:/var/www/html/plugins
+      - ./db/sqlite:/var/roundcube/db
+      - ./nonroot-custom-php-config.ini:/usr/local/etc/php/conf.d/zzz-nonroot-custom-php-config.ini
+    ports:
+      - 9003:8000
+    environment:
+      - ROUNDCUBEMAIL_DEFAULT_HOST=tls://mail.example.org
+      - ROUNDCUBEMAIL_SMTP_SERVER=tls://mail.example.org

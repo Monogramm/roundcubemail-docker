@@ -1,0 +1,59 @@
+name: Build & publish development image
+
+permissions:
+  contents: read
+
+on:
+  push:
+    branches:
+      - 'master'
+    paths:
+      - 'development/**'
+      - .github/workflows/*-development.yml
+  schedule:
+    # Rebuild images each monday morning to ensure a fresh base OS (but later than the main image building workflow,
+    # because the development image builds on one of them)
+    - cron: "23 4 * * 1"
+  workflow_dispatch:
+
+jobs:
+  build_test_publish:
+    name: Build, test and publish image
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Docker
+        # This step is required to enable the containerd image store, which is required by the cache type=gha
+        uses: docker/setup-docker-action@7ec28a010822b4626af4874f9448a4b05ac6f3e5 # v5.6.0
+        with:
+          daemon-config: |
+           {
+             "debug": true,
+             "features": {
+               "containerd-snapshotter": true
+             }
+           }
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          buildkitd-flags: --debug
+
+      - name: Build and test development image
+        run: ./development/build-and-test.sh
+
+      # Only log into docker now, so we benefit from the automatic caching of upstream images.
+      - name: Get docker hub username
+        id: creds
+        run: echo 'username=${{ secrets.DOCKER_PULL_USERNAME }}' >> $GITHUB_OUTPUT
+      - name: Login to Docker Hub
+        if: steps.creds.outputs.username != ''
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          username: ${{ secrets.DOCKER_PULL_USERNAME }}
+          password: ${{ secrets.DOCKER_PUSH_PASSWORD }}
+
+      - name: Build and push development images for all platforms
+        run: ./development/build-and-push.sh

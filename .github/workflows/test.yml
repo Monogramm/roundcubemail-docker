@@ -1,0 +1,39 @@
+name: Build & Test
+permissions:
+  contents: read
+on:
+  pull_request:
+    paths-ignore:
+      - "development/**"
+      - .github/workflows/*-development.yml
+      - "nightly/**"
+      - "examples/**"
+      - "README.md"
+jobs:
+  build-and-testvariants:
+    name: Build image variants and run tests
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      max-parallel: 10
+      matrix:
+        variant: [apache, fpm, fpm-alpine]
+        version: [1.7.6, 1.6.21]
+        target: [root, nonroot]
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Docker
+        # This step is required to enable the containerd image store, which is required by the cache type=gha
+        uses: docker/setup-docker-action@7ec28a010822b4626af4874f9448a4b05ac6f3e5 # v5.6.0
+        with:
+          daemon-config: |
+            {
+              "debug": true,
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }
+      - name: Build and test "${{ matrix.version }}" "${{ matrix.variant }} "${{ matrix.target }}"
+        run: |
+          ./build-image.sh --variant "${{ matrix.variant }}" --version "${{ matrix.version }}" --target "${{ matrix.target }}" --run-tests

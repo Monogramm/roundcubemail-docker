@@ -1,39 +1,70 @@
-name: Build Docker image
-
-on: [push, pull_request]
-
+name: Build & Publish
+permissions:
+  contents: read
+on:
+  push:
+    branches:
+      - 'master'
+    paths-ignore:
+      - 'README.md'
+      - 'examples/**'
+      - 'development/**'
+      - 'nightly/**'
+    tags:
+      - '1.7.*'
+      - '1.6.*'
+  schedule:
+    # Rebuild images each monday early morning to ensure a fresh base OS.
+    - cron: "23 2 * * 1"
+  workflow_dispatch:
 jobs:
   build-and-testvariants:
-    name: Build image variants and run tests
+    name: Build, test and push all image variants
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      max-parallel: 10
       matrix:
+        variant: [apache, fpm, fpm-alpine]
+        version: [1.7.6, 1.6.21]
+        target: [root, nonroot]
         include:
-          - { variant: 'apache', test-files: ['apache-postgres'], docker-tag: 'roundcube-test-apache' }
-          - { variant: 'fpm', test-files: ['fpm-postgres'], docker-tag: 'roundcube-test-fpm' }
-          - { variant: 'fpm-alpine', test-files: ['fpm-postgres'], docker-tag: 'roundcube-test-fpm-alpine' }
+          - version: 1.7.6
+            tag_as_latest_arg: "--tag-as-latest"
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Set up Docker
+        # This step is required to enable the containerd image store, which is required by the cache type=gha
+        uses: docker/setup-docker-action@7ec28a010822b4626af4874f9448a4b05ac6f3e5 # v5.6.0
+        with:
+          daemon-config: |
+            {
+              "debug": true,
+              "features": {
+                "containerd-snapshotter": true
+              }
+            }
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4.4.0
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+        with:
+          buildkitd-flags: --debug
+      - name: Build and test "${{ matrix.version }}" "${{ matrix.variant }} "${{ matrix.target }}"
+        run: |
+          ./build-image.sh --variant "${{ matrix.variant }}" --version "${{ matrix.version }}" --target "${{ matrix.target }}" --run-tests
+      # Only log into docker now, so we benefit from the automatic caching of upstream images. (Apparently we
+      # can only benefit from cached upstream images if the job is not authenticated.)
       - name: Get docker hub username
         id: creds
-        run: echo '::set-output name=username::${{ secrets.DOCKER_PULL_USERNAME }}'
+        run: echo 'username=${{ secrets.DOCKER_PULL_USERNAME }}' >> $GITHUB_OUTPUT
       - name: Login to Docker Hub
         if: steps.creds.outputs.username != ''
-        uses: docker/login-action@v1
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
         with:
           username: ${{ secrets.DOCKER_PULL_USERNAME }}
-          password: ${{ secrets.DOCKER_PULL_PASSWORD }}
-      - name: Build image variant "${{ matrix.variant }}"
-        run: cd ${{ matrix.variant }} && docker build ./ -t ${{ matrix.docker-tag }}
-      - name: Run tests
-        env:
-          ROUNDCUBEMAIL_TEST_IMAGE: ${{ matrix.docker-tag }}
+          password: ${{ secrets.DOCKER_PUSH_PASSWORD }}
+      - name: Build and push "${{ matrix.version }}" "${{ matrix.variant }} "${{ matrix.target }}"
         run: |
-          set -exu;
-          for testFile in ${{ join(matrix.test-files, ' ') }};
-          do
-            docker-compose -f ./tests/docker-compose.test-${testFile}.yml \
-            up --exit-code-from=sut --abort-on-container-exit
-          done
+          ./build-image.sh --variant "${{ matrix.variant }}" --version "${{ matrix.version }}" --target "${{ matrix.target }}" ${{ matrix.tag_as_latest_arg }} --platform "linux/arm64,linux/arm/v6,linux/arm/v7,linux/386,linux/amd64" --push

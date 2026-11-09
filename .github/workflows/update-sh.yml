@@ -1,0 +1,40 @@
+name: update.sh
+
+permissions:
+  # Git push permissions are needed
+  contents: write
+  pull-requests: write
+
+on:
+  push:
+    branches:
+    - master
+  schedule:
+  - cron:  '11 0 * * *'
+  workflow_dispatch:
+
+jobs:
+  run_update_sh:
+    name: Run update.sh script
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      with:
+        token: ${{ secrets.WOKFLOW_TOKEN }}
+    - name: Run update.sh script
+      run: ./update.sh
+    - name: Commit files
+      env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      run: |
+        # Exit early if no changes are present.
+        test $(git status --porcelain | wc -l) -gt 0 || { echo "No changes to commit, happily cancelling this script."; exit 0; }
+        # Use a distinct branch-name (nano-seconds should be good enough).
+        BRANCH="changes-from-update.sh-$(date +'%Y-%m-%d_%H%M%S_%N')"
+        git switch -C "$BRANCH"
+        git config --local user.email "workflow@github.com"
+        git config --local user.name "GitHub Workflow"
+        git add -A
+        git commit -m "Update roundcube version (via update.sh)"
+        git push --set-upstream origin "$BRANCH"
+        gh pr create -B master -H "$BRANCH" --title 'Changes from update.sh' --body "These are the changes of the automated run of ./update.sh" --assignee pabzm
